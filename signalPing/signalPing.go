@@ -25,48 +25,19 @@ type packet struct {
 
 type SignalPing struct {
 	quit chan bool
-
-	udpaddr *net.UDPAddr
-	addr    string
-	source  string
-	network string
-
-	OnRecv func(net.Addr)
 }
 
 func newService() *SignalPing {
-	fmt.Println("newService()")
-	return &SignalPing{
-		quit: make(chan bool),
-
-		udpaddr: nil,
-		addr:    "",
-		source:  "",
-		network: "udp4",
-	}
-}
-
-func (s *SignalPing) UDPAddr() *net.UDPAddr {
-	return s.udpaddr
-}
-
-func (s *SignalPing) Addr() string {
-	return s.addr
-}
-
-func (s *SignalPing) SetUDPAddr(udpaddr *net.UDPAddr) {
-	s.udpaddr = udpaddr
-	s.addr = udpaddr.String()
+	return &SignalPing{quit: make(chan bool)}
 }
 
 func NewService() *SignalPing {
-	fmt.Println("NewService()")
 	s := newService()
 	return s
 }
 
 func (s *SignalPing) Run() {
-	conn, err := icmp.ListenPacket("udp4", "0.0.0.0")
+	conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,9 +51,8 @@ func (s *SignalPing) Run() {
 	signal.Notify(c, syscall.SIGTERM)
 
 	wg.Add(1)
-	go s.recvICMP(conn, recv, c, &wg)
+	go s.recvICMP(conn, recv, &wg)
 
-	fmt.Println("Running main loop...")
 	for {
 		select {
 		case <-s.quit:
@@ -114,7 +84,6 @@ func (s *SignalPing) Stop() {
 func (s *SignalPing) recvICMP(
 	conn *icmp.PacketConn,
 	recv chan<- *packet,
-	c <-chan os.Signal,
 	wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
@@ -122,9 +91,6 @@ func (s *SignalPing) recvICMP(
 	for {
 		select {
 		case <-s.quit:
-			return
-		case <-c:
-			s.Stop()
 			return
 		default:
 			rb := make([]byte, MTU)
