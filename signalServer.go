@@ -33,9 +33,11 @@ func main() {
 
 		switch rm.Type {
 		case ipv4.ICMPTypeEcho:
-			log.Printf(raddr.String())
-			log.Printf("got %+v; want echo reply", rm)
+			fmt.Printf(raddr.String())
+			// log.Printf(raddr.String())
+			// log.Printf("got %+v; want echo reply", rm)
 			// stream(raddr.String())
+			return
 		default:
 		}
 	}
